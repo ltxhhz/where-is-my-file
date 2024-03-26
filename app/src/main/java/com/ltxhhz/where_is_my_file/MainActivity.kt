@@ -1,7 +1,6 @@
 package com.ltxhhz.where_is_my_file
 
 import android.app.Activity
-import android.app.ProgressDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -9,7 +8,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
-import android.os.SystemClock
 import android.provider.DocumentsContract
 import android.util.Log
 import android.view.Menu
@@ -37,11 +35,10 @@ import java.io.InputStream
 
 class MainActivity : AppCompatActivity() {
 
-    //    private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private var list: MutableList<ReceiveFile> = mutableListOf()
 
-    private lateinit var selectedUri: Uri;
+    private lateinit var selectedUri: Uri
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -123,7 +120,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleSingleIntent(intent: Intent) {
-        val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM) ?: intent.data ?: return
+        val uri = intent.getParcelableExtra(Intent.EXTRA_STREAM) ?: intent.data ?: return
         val fromPkg = referrer?.authority ?: ""
 
         val receiveFile = ReceiveFile(
@@ -214,7 +211,7 @@ class MainActivity : AppCompatActivity() {
                         toast("获取存储权限失败")
                     }
                 }
-            });
+            })
 //            .request(object : OnPermissionCallback {
 //                override fun onGranted(p0: MutableList<String>, p1: Boolean) {
 //                }(granted: List<String>, isAll: Boolean) {
@@ -238,7 +235,7 @@ class MainActivity : AppCompatActivity() {
 //        }
     }
 
-    private fun select(): Unit {
+    private fun select() {
         val settings = FileSelectorSettings()
         settings.setRootPath(FileSelectorSettings.getSystemRootPath()) //起始路径
             .setMaxFileSelect(1) //最大文件选择数
@@ -247,7 +244,7 @@ class MainActivity : AppCompatActivity() {
             .show(this) //显示
     }
 
-    private fun fileSelected(path: String): Unit {
+    private fun fileSelected(path: String) {
         val file = File(path)
         if (file.exists()) {
 //            copyUriToFile(file.toUri(), selectedUri)
@@ -263,11 +260,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun toastL(s: String) {
         Toast.makeText(this, s, Toast.LENGTH_LONG).show()
-    }
-
-    private fun copyUriToFile(destinationFolderUri: Uri, sourceUri: Uri) {
-        // 获取源文件的输入流
-
     }
 
     private fun copyToFile(dest: String, sourceUri: Uri) {
@@ -328,9 +320,9 @@ class MainActivity : AppCompatActivity() {
 
             else -> {
                 if (DocumentsContract.isDocumentUri(this, uri)) {
-                    val documentId = DocumentsContract.getDocumentId(uri)
-                    if (documentId.startsWith("raw:")) {
-                        documentId.replaceFirst("raw:", "")
+                    val d = DocumentsContract.getDocumentId(uri)
+                    if (d.startsWith("raw:")) {
+                        d.replaceFirst("raw:", "")
                     } else {
                         realPath
                     }
@@ -346,21 +338,6 @@ class MainActivity : AppCompatActivity() {
         val clipData = ClipData.newPlainText("Text", text)
         clipboardManager.setPrimaryClip(clipData)
         Toast.makeText(this, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun openFolderOfFile(item: String) {
-        // 从文件 URI 中提取文件夹路径
-        // 创建一个 Intent 并设置 Action 和 Data
-//        val intent = Intent(Intent.ACTION_VIEW)
-        val intent = Intent(Intent.ACTION_GET_CONTENT)
-//        intent.setDataAndType(Uri.parse(item), "*/*")
-        intent.setDataAndType(Uri.parse(item), "resource/folder")
-
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-
-        // 启动 Intent
-
-        startActivity(Intent.createChooser(intent, "打开文件夹"))
     }
 
     private fun share(item: ReceiveFile) {
@@ -385,8 +362,9 @@ class MainActivity : AppCompatActivity() {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         return when (item.itemId) {
-            R.id.action_settings -> {
-                Log.i(null, this.cacheDir.toString())
+            R.id.action_github -> {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/ltxhhz/where-is-my-file"))
+                startActivity(intent)
                 true
             }
 
