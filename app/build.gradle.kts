@@ -4,6 +4,14 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        create("release") {
+            storeFile = file("C:\\Users\\ltxhhz\\certificate\\key.jks")
+            storePassword = "991226zwl."
+            keyAlias = "ltxhhz-key"
+            keyPassword = "991226zwl."
+        }
+    }
     namespace = "com.ltxhhz.where_is_my_file"
     compileSdk = 34
 
@@ -19,11 +27,15 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
+        }
+        getByName("debug") {
+            applicationIdSuffix = ".debug"
         }
     }
     compileOptions {
