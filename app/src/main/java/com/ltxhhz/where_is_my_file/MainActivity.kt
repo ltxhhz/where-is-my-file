@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity() {
             list.clear()
             updateView()
             Snackbar.make(view, "已清空", Snackbar.LENGTH_SHORT)
-                .setAction("Action", null).setAnchorView(R.id.fab).show()
+                .setAnchorView(R.id.fab).show()
 
         }
         handleIntent(intent)
@@ -212,31 +212,11 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             })
-//            .request(object : OnPermissionCallback {
-//                override fun onGranted(p0: MutableList<String>, p1: Boolean) {
-//                }(granted: List<String>, isAll: Boolean) {
-//                    fileCopyLauncher.launch(intent)
-//                }
-//                override fun noPermission(denied: List<String>, quick: Boolean) {
-//                    Toast.makeText(applicationContext,"需要权限",Toast.LENGTH_SHORT).show()
-//                }
-//            })
-//
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-//            if (!Environment.isExternalStorageManager()) {
-//                managerExtPermission.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
-//            } else {
-//                // 已经获取了权限，可以进行文件操作了
-//
-//            }
-//        } else {
-//            // Android 10以下的版本，不需要请求权限，直接进行文件操作
-//            fileCopyLauncher.launch(intent)
-//        }
     }
 
     private fun select() {
         val settings = FileSelectorSettings()
+        toast("长按选择文件夹")
         settings.setRootPath(FileSelectorSettings.getSystemRootPath()) //起始路径
             .setMaxFileSelect(1) //最大文件选择数
             .setTitle("请选择目标文件夹") //标题
@@ -363,7 +343,10 @@ class MainActivity : AppCompatActivity() {
         // as you specify a parent activity in AndroidManifest.xml.
         return when (item.itemId) {
             R.id.action_github -> {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/ltxhhz/where-is-my-file"))
+                val intent = Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://github.com/ltxhhz/where-is-my-file")
+                )
                 startActivity(intent)
                 true
             }
