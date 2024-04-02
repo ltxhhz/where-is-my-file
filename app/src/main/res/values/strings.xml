@@ -2,4 +2,22 @@
     <string name="app_name">我tm文件呢</string>
     <string name="action_github" translatable="false">GitHub</string>
     <string name="floating_btn_tooltip">清空列表</string>
+    <string name="tip_clear_list">已清空</string>
+    <string name="menu_item0">复制文件名</string>
+    <string name="menu_item1">复制路径</string>
+    <string name="menu_item2">复制 uri</string>
+    <string name="menu_item3">分享</string>
+    <string name="menu_item4">复制到</string>
+    <string name="menu_title">菜单</string>
+    <string name="permission_some">获取部分权限成功，但部分权限未正常授予</string>
+    <string name="permission_reject_permanent">被永久拒绝授权，请手动授予权限</string>
+    <string name="permission_reject">获取存储权限失败</string>
+    <string name="tip_longpress_to_select">长按选择文件夹</string>
+    <string name="tip_select_folder">请选择目标文件夹</string>
+    <string name="tip_path_not_exist">目录不存在</string>
+    <string name="tip_same_name_exist">同名文件已存在</string>
+    <string name="tip_completed">已完成</string>
+    <string name="msg_moving">移动中</string>
+    <string name="tip_copied">已复制</string>
+    <string name="label_share_to">分享到</string>
 </resources>

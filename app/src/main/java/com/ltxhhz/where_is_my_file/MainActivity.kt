@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         binding.fab.setOnClickListener { view ->
             list.clear()
             updateView()
-            Snackbar.make(view, "已清空", Snackbar.LENGTH_SHORT)
+            Snackbar.make(view, R.string.tip_clear_list, Snackbar.LENGTH_SHORT)
                 .setAnchorView(R.id.fab).show()
 
         }
@@ -165,10 +165,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showMenuDialog(item: ReceiveFile) {
-        val options = arrayOf("复制文件名", "复制路径", "复制uri", "分享", "复制到")
+        val options = arrayOf(
+            getString(R.string.menu_item0),
+            getString(R.string.menu_item1),
+            getString(R.string.menu_item2),
+            getString(R.string.menu_item3),
+            getString(R.string.menu_item4)
+        )
 
         val builder = AlertDialog.Builder(this)
-        builder.setTitle("Menu").setItems(options) { dialog, which ->
+        builder.setTitle(getString(R.string.menu_title)).setItems(options) { dialog, which ->
             // 处理菜单项点击事件
             when (which) {
                 0 -> copyToClipboard(item.filename)
@@ -195,7 +201,7 @@ class MainActivity : AppCompatActivity() {
             .request(object : OnPermissionCallback {
                 override fun onGranted(permissions: List<String>, allGranted: Boolean) {
                     if (!allGranted) {
-                        toast("获取部分权限成功，但部分权限未正常授予")
+                        toast(R.string.permission_some)
                         return
                     }
 //                    toast("获取存储权限成功")
@@ -204,11 +210,11 @@ class MainActivity : AppCompatActivity() {
 
                 override fun onDenied(permissions: List<String>, doNotAskAgain: Boolean) {
                     if (doNotAskAgain) {
-                        toast("被永久拒绝授权，请手动授予权限")
+                        toast(R.string.permission_reject_permanent)
                         // 如果是被永久拒绝就跳转到应用权限系统设置页面
                         XXPermissions.startPermissionActivity(this@MainActivity, permissions)
                     } else {
-                        toast("获取存储权限失败")
+                        toast(R.string.permission_reject)
                     }
                 }
             })
@@ -216,10 +222,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun select() {
         val settings = FileSelectorSettings()
-        toast("长按选择文件夹")
+        toast(R.string.tip_longpress_to_select)
         settings.setRootPath(FileSelectorSettings.getSystemRootPath()) //起始路径
             .setMaxFileSelect(1) //最大文件选择数
-            .setTitle("请选择目标文件夹") //标题
+            .setTitle(getString(R.string.tip_select_folder)) //标题
             .setFileTypesToSelect(FileInfo.FileType.Folder) //可选择文件类型
             .show(this) //显示
     }
@@ -230,7 +236,7 @@ class MainActivity : AppCompatActivity() {
 //            copyUriToFile(file.toUri(), selectedUri)
             copyToFile(path, selectedUri)
         } else {
-            toastL("目录不存在$path")
+            toastL("${getString(R.string.tip_path_not_exist)} $path")
         }
     }
 
@@ -238,7 +244,15 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, s, Toast.LENGTH_SHORT).show()
     }
 
+    private fun toast(s: Int) {
+        Toast.makeText(this, s, Toast.LENGTH_SHORT).show()
+    }
+
     private fun toastL(s: String) {
+        Toast.makeText(this, s, Toast.LENGTH_LONG).show()
+    }
+
+    private fun toastL(s: Int) {
         Toast.makeText(this, s, Toast.LENGTH_LONG).show()
     }
 
@@ -252,15 +266,15 @@ class MainActivity : AppCompatActivity() {
             val fileName = getFileName(sourceUri)
             val destinationFile = File(destinationFolder, fileName)
             if (destinationFile.exists()) {
-                Toast.makeText(this, "同名文件已存在", Toast.LENGTH_SHORT).show()
+                toast(R.string.tip_same_name_exist)
             } else {
                 // 复制文件内容
 //                toast("移动中")
-                ProgressHelper.showDialog(this, "移动中")
+                ProgressHelper.showDialog(this, getString(R.string.msg_moving))
                 FileOutputStream(destinationFile).use { output ->
                     input.copyTo(output)
                     ProgressHelper.dismissDialog()
-                    toast("已完成")
+                    toast(R.string.tip_completed)
                 }
             }
         }
@@ -317,14 +331,14 @@ class MainActivity : AppCompatActivity() {
         val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clipData = ClipData.newPlainText("Text", text)
         clipboardManager.setPrimaryClip(clipData)
-        Toast.makeText(this, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
+        toast(R.string.tip_copied)
     }
 
     private fun share(item: ReceiveFile) {
         val intent = Intent(Intent.ACTION_SEND)
         intent.type = getMimeType(item.uri)
         intent.putExtra(Intent.EXTRA_STREAM, item.uri)
-        startActivity(Intent.createChooser(intent, "分享到"))
+        startActivity(Intent.createChooser(intent, getString(R.string.label_share_to)))
     }
 
     private fun getMimeType(uri: Uri): String {
