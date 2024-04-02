@@ -1,3 +1,4 @@
+import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
 import java.util.Properties
 
 plugins {
@@ -23,8 +24,8 @@ android {
         applicationId = "com.ltxhhz.where_is_my_file"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -55,6 +56,18 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+    applicationVariants.all {
+        outputs.all {
+            val ver = defaultConfig.versionName
+            val minSdk = project.extensions.getByType(BaseAppModuleExtension::class.java).defaultConfig.minSdk
+            val abi = filters.find{it.filterType == "ABI"}?.identifier ?:"all"
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
+                "${project.name}-$ver-${abi}-sdk$minSdk.apk"
+            println("Output File Dir: "+outputFile.parent)
+        }
+    }
+
 }
 
 dependencies {
