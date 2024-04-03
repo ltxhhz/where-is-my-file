@@ -14,7 +14,7 @@ android {
             storeFile = file(signingProperties.getProperty("storeFile"))
             storePassword = signingProperties.getProperty("storePassword")
             keyAlias = signingProperties.getProperty("keyAlias")
-            keyPassword = signingProperties.getProperty(("keyPassword"))
+            keyPassword = signingProperties.getProperty("keyPassword")
         }
     }
     namespace = "com.ltxhhz.where_is_my_file"
