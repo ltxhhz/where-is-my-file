@@ -77,7 +77,7 @@ class CrashHandler private constructor() : Thread.UncaughtExceptionHandler {
             )
             if (pi != null) {
                 val versionName = pi.versionName ?: "unknown"
-                val versionCode = pi.versionCode.toString() + ""
+                val versionCode = pi.longVersionCode.toString() + ""
                 infos["versionName"] = versionName
                 infos["versionCode"] = versionCode
             }
@@ -88,7 +88,7 @@ class CrashHandler private constructor() : Thread.UncaughtExceptionHandler {
         for (field in fields) {
             try {
                 field.isAccessible = true
-                infos[field.name] = field[null].toString()
+                infos[field.name] = field[null]?.toString() ?: "null"
             } catch (e: Exception) {
             }
         }

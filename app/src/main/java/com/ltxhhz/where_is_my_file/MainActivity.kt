@@ -7,28 +7,24 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.os.Debug
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
-import androidx.activity.compose.setContent
 import android.widget.Toast
+import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.ui.platform.isDebugInspectorInfoEnabled
 import androidx.core.net.toFile
+import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import com.hjq.permissions.OnPermissionCallback
 import com.hjq.permissions.Permission
 import com.hjq.permissions.XXPermissions
+import com.ltxhhz.where_is_my_file.ui.MainScreen
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
-import androidx.core.net.toUri
-import com.ltxhhz.where_is_my_file.ui.MainScreen
 
 
 class MainActivity : AppCompatActivity() {
@@ -101,7 +97,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleSingleIntent(intent: Intent) {
-        val uri = intent.getParcelableExtra(Intent.EXTRA_STREAM) ?: intent.data ?: return
+        val uri = intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java) ?: intent.data ?: return
         val fromPkg = referrer?.authority ?: ""
 
         val receiveFile = ReceiveFile(
@@ -111,7 +107,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleMultipleIntent(intent: Intent) {
-        val streamUris = intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+        val streamUris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
         if (streamUris != null) {
             for (uri in streamUris) {
                 val fromPkg = referrer?.authority ?: ""
@@ -300,7 +296,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun copyToClipboard(text: String) {
-        val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         val clipData = ClipData.newPlainText("Text", text)
         clipboardManager.setPrimaryClip(clipData)
         toast(R.string.tip_copied)
