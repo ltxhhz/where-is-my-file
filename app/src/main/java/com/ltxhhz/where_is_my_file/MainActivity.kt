@@ -7,115 +7,96 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Debug
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
-import android.widget.TextView
+import androidx.activity.compose.setContent
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.ui.platform.isDebugInspectorInfoEnabled
+import androidx.core.net.toFile
 import androidx.core.view.WindowCompat
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.snackbar.Snackbar
 import com.hjq.permissions.OnPermissionCallback
 import com.hjq.permissions.Permission
 import com.hjq.permissions.XXPermissions
-import com.ltxhhz.where_is_my_file.databinding.ActivityMainBinding
-import com.z.fileselectorlib.FileSelectorSettings
-import com.z.fileselectorlib.Objects.FileInfo
-import com.z.fileselectorlib.Utils.FileUtil
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import androidx.core.net.toUri
+import com.ltxhhz.where_is_my_file.ui.MainScreen
 
 
 class MainActivity : AppCompatActivity() {
+    private val model by viewModels<AppStateViewModel>()
+    private lateinit var safPicker: SafPicker
 
-    private lateinit var binding: ActivityMainBinding
-    private var list: MutableList<ReceiveFile> = mutableListOf()
-
-    private lateinit var selectedUri: Uri
-
+    private lateinit var sourceUri: Uri
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        setSupportActionBar(binding.toolbar)
-
-//        val navController = findNavController(R.id.nav_host_fragment_content_main)
-//        appBarConfiguration = AppBarConfiguration(navController.graph)
-//        setupActionBarWithNavController(navController, appBarConfiguration)
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars =
             true
 
-        binding.fab.setOnClickListener { view ->
-            list.clear()
-            updateView()
-            Snackbar.make(view, R.string.tip_clear_list, Snackbar.LENGTH_SHORT)
-                .setAnchorView(R.id.fab).show()
-
-        }
         handleIntent(intent)
-        updateView()
+        safPicker = SafPicker(this)
+        safPicker.onDirPicked = { uri ->
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            contentResolver.takePersistableUriPermission(uri, flags)
+            fileSelected(getRealPathFromUri(uri))
+        }
+//        safPicker.onFilePicked = { uri ->
+//        }
         val mCrashHandler = CrashHandler.instance
         mCrashHandler.init(applicationContext, Activity::class.java)
+        setContent {
+            MainScreen(model,{
+                openFile(it)
+            },{
+                showMenuDialog(it)
+            }) {
+                model.clearList()
+            }
+        }
+        if (BuildConfig.DEBUG){
+            model.addItem(
+                ReceiveFile(
+                    "file:///storage/emulated/0/Download/test.txt".toUri(),
+                    "com.ltxhhz.where_is_my_file",
+                    "ACTION_VIEW",
+                    "file:///storage/emulated/0/Download/test.txt"
+                )
+            )
+        }
     }
 
-    @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == FileSelectorSettings.FILE_LIST_REQUEST_CODE && resultCode == FileSelectorSettings.BACK_WITH_SELECTIONS) {
-            assert(data != null)
-            val bundle = data!!.extras!!
-            val filePathSelected =
-                bundle.getStringArrayList(FileSelectorSettings.FILE_PATH_LIST_REQUEST)
-            val filePath = filePathSelected!![0]
-            val accessType = FileInfo.judgeAccess(filePath)
-            when (accessType) {
-//                FileInfo.AccessType.Open -> {
-//                    var file: File = File(file_path)
-//                }
-                FileInfo.AccessType.Protected -> {
-                    fileSelected(
-                        getRealPathFromUri(
-                            FileUtil.getDocumentFilePath(
-                                this,
-                                filePath
-                            ).uri
-                        )
-                    )
-                }
-
-                else -> {
-                    fileSelected(filePath)
-                }
-            }
-            Log.v("file_sel", filePath!!)
-        }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        intent?.let {
-            handleIntent(it)
-        }
+        handleIntent(intent)
     }
 
+    /**
+     * 处理传入的Intent，根据不同的Action类型分发给相应的处理函数
+     * @param it 传入的Intent对象
+     */
     private fun handleIntent(it: Intent) {
         val action = it.action
+        // 检查Intent的Action是否为支持的类型
         if (action == Intent.ACTION_VIEW || action == Intent.ACTION_SEND || action == Intent.ACTION_SEND_MULTIPLE) {
+            // 根据具体的Action类型调用相应的处理函数
             when (action) {
                 Intent.ACTION_VIEW -> handleSingleIntent(it)
                 Intent.ACTION_SEND -> handleSingleIntent(it)
                 Intent.ACTION_SEND_MULTIPLE -> handleMultipleIntent(it)
             }
-            updateView()
         }
     }
 
@@ -124,12 +105,9 @@ class MainActivity : AppCompatActivity() {
         val fromPkg = referrer?.authority ?: ""
 
         val receiveFile = ReceiveFile(
-            uri,
-            fromPkg,
-            intent.action!!,
-            RealPathFromUriUtils.getRealPathFromUri(this, uri)
+            uri, fromPkg, intent.action!!, RealPathFromUriUtils.getRealPathFromUri(this, uri)
         )
-        list.add(receiveFile)
+        model.addItem(receiveFile)
     }
 
     private fun handleMultipleIntent(intent: Intent) {
@@ -144,55 +122,59 @@ class MainActivity : AppCompatActivity() {
                     intent.action!!,
                     RealPathFromUriUtils.getRealPathFromUri(this, uri)
                 )
-                list.add(receiveFile)
+                model.addItem(receiveFile)
             }
-        }
-    }
-
-    private fun updateView() {
-        val emptyText = findViewById<TextView>(R.id.emptyText)
-        val listview = findViewById<RecyclerView>(R.id.listview)
-
-        if (list.isEmpty()) {
-            emptyText.visibility = View.VISIBLE
-            listview.visibility = View.GONE
-        } else {
-            emptyText.visibility = View.GONE
-            listview.visibility = View.VISIBLE
-            listview.layoutManager = LinearLayoutManager(this)
-            listview.adapter = ItemAdapter(this, list) { item -> showMenuDialog(item) }
         }
     }
 
     private fun showMenuDialog(item: ReceiveFile) {
-        val options = arrayOf(
+        val options = arrayListOf(
             getString(R.string.menu_item0),
             getString(R.string.menu_item1),
             getString(R.string.menu_item2),
             getString(R.string.menu_item3),
-            getString(R.string.menu_item4)
+            getString(R.string.menu_item4),
+            getString(R.string.menu_item5)
         )
+        if (BuildConfig.DEBUG) {
+            options.add("test")
+        }
 
         val builder = AlertDialog.Builder(this)
-        builder.setTitle(getString(R.string.menu_title)).setItems(options) { dialog, which ->
-            // 处理菜单项点击事件
-            when (which) {
-                0 -> copyToClipboard(item.filename)
-                1 -> copyToClipboard(item.path)
-                2 -> copyToClipboard(item.uri.toString())
+        builder.setTitle(getString(R.string.menu_title))
+            .setItems(options.toTypedArray()) { dialog, which ->
+                // 处理菜单项点击事件
+                when (which) {
+                    0 -> copyToClipboard(item.filename)
+                    1 -> copyToClipboard(item.path)
+                    2 -> copyToClipboard(item.uri.toString())
 //                    3 -> openFolderOfFile(item.path)
-                3 -> share(item)
-                4 -> selectFolderAndCopyFile(item.uri)
+                    3 -> share(item)
+                    4 -> selectFolderAndCopyFile(item.uri)
+                    5 -> openFile(item)
+                    6 -> {
+                        val apps = getAppsForFile(this, item.uri.toFile())
+                        if (apps.isEmpty()) {
+                            toast("没有可用的应用")
+                        } else {
+                            apps.forEach { resolveInfo ->
+                                val appName = resolveInfo.loadLabel(packageManager).toString()
+                                Log.v("apps", appName)
+                                val appIcon = resolveInfo.loadIcon(packageManager)
+                                // 显示到列表或对话框
+                            }
+                        }
+                    }
+                }
+                dialog.dismiss() // 点击后关闭对话框
             }
-            dialog.dismiss() // 点击后关闭对话框
-        }
 
         val dialog = builder.create()
         dialog.show()
     }
 
     private fun selectFolderAndCopyFile(sourceUri: Uri) {
-        selectedUri = sourceUri
+        this@MainActivity.sourceUri = sourceUri
 //        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
         XXPermissions.with(this) //.constantRequest() //可设置被拒绝后继续申请，直到用户授权或者永久拒绝
             //.permission(Permission.SYSTEM_ALERT_WINDOW, Permission.REQUEST_INSTALL_PACKAGES) //支持请求6.0悬浮窗权限8.0请求安装权限
@@ -205,7 +187,7 @@ class MainActivity : AppCompatActivity() {
                         return
                     }
 //                    toast("获取存储权限成功")
-                    select()
+                    safPicker.pickDirectory()
                 }
 
                 override fun onDenied(permissions: List<String>, doNotAskAgain: Boolean) {
@@ -220,21 +202,11 @@ class MainActivity : AppCompatActivity() {
             })
     }
 
-    private fun select() {
-        val settings = FileSelectorSettings()
-        toast(R.string.tip_longpress_to_select)
-        settings.setRootPath(FileSelectorSettings.getSystemRootPath()) //起始路径
-            .setMaxFileSelect(1) //最大文件选择数
-            .setTitle(getString(R.string.tip_select_folder)) //标题
-            .setFileTypesToSelect(FileInfo.FileType.Folder) //可选择文件类型
-            .show(this) //显示
-    }
-
     private fun fileSelected(path: String) {
         val file = File(path)
         if (file.exists()) {
 //            copyUriToFile(file.toUri(), selectedUri)
-            copyToFile(path, selectedUri)
+            copyToFile(path, sourceUri)
         } else {
             toastL("${getString(R.string.tip_path_not_exist)} $path")
         }
@@ -256,11 +228,11 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, s, Toast.LENGTH_LONG).show()
     }
 
-    private fun copyToFile(dest: String, sourceUri: Uri) {
+    private fun copyToFile(destDir: String, sourceUri: Uri) {
         val inputStream: InputStream? = contentResolver.openInputStream(sourceUri)
         inputStream?.use { input ->
             // 获取目标文件夹的路径
-            val destinationFolder = File(dest)
+            val destinationFolder = File(destDir)
 
             // 创建目标文件
             val fileName = getFileName(sourceUri)
@@ -345,59 +317,15 @@ class MainActivity : AppCompatActivity() {
         return contentResolver.getType(uri) ?: "*/*"
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        return when (item.itemId) {
-            R.id.action_github -> {
-                val intent = Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://github.com/ltxhhz/where-is-my-file")
-                )
-                startActivity(intent)
-                true
-            }
-
-            else -> super.onOptionsItemSelected(item)
+    private fun openFile(item: ReceiveFile) {
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setDataAndType(item.uri, getMimeType(item.uri))
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            toast(R.string.tip_no_app_to_open)
+            e.printStackTrace()
         }
-    }
-
-}
-
-class ReceiveFile(
-    val uri: Uri,
-    val fromPkg: String,
-    val action: String,
-    s: String?
-) {
-    val path: String
-    val filename: String
-    val isDir: Boolean
-    val possible: Boolean
-
-    val isView: Boolean
-        get() = action == Intent.ACTION_VIEW
-
-    val isSend: Boolean
-        get() = action == Intent.ACTION_SEND || action == Intent.ACTION_SEND_MULTIPLE
-
-    init {
-        filename = extractFileName(uri.toString())
-        possible = s == null
-        path = s ?: Uri.decode(uri.toString().replaceFirst(Regex("content://[^/]+"), ""))
-        isDir = path.endsWith("/")
-    }
-
-    private fun extractFileName(url: String): String {
-        val regExp = Regex("[^/?]+\$")
-        val matchResult = regExp.find(Uri.decode(url))
-        return matchResult?.value ?: ""
     }
 }

@@ -20,5 +20,11 @@
     <string name="msg_moving">Moving</string>
     <string name="tip_copied">Copied</string>
     <string name="label_share_to">Share to</string>
+    <string name="menu_item5">Open</string>
+    <string name="app_name_debug">Where\'s My File</string>
+    <string name="tip_no_app_to_open">No app to open</string>
+    <string name="label_path">Path</string>
+    <string name="label_possible">Possible</string>
+    <string name="label_folder">Folder</string>
 
 </resources>

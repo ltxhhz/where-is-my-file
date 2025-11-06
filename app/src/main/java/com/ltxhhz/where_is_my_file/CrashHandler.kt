@@ -10,6 +10,7 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
+import kotlin.system.exitProcess
 
 class CrashHandler private constructor() : Thread.UncaughtExceptionHandler {
     private var mDefaultHandler: Thread.UncaughtExceptionHandler? = null
@@ -64,7 +65,7 @@ class CrashHandler private constructor() : Thread.UncaughtExceptionHandler {
 
     private fun exitApp() {
         Process.killProcess(Process.myPid())
-        System.exit(0)
+        exitProcess(0)
     }
 
     fun collectDeviceInfo(ctx: Context) {
@@ -75,7 +76,7 @@ class CrashHandler private constructor() : Thread.UncaughtExceptionHandler {
                 PackageManager.GET_ACTIVITIES
             )
             if (pi != null) {
-                val versionName = if (pi.versionName == null) "null" else pi.versionName
+                val versionName = pi.versionName ?: "unknown"
                 val versionCode = pi.versionCode.toString() + ""
                 infos["versionName"] = versionName
                 infos["versionCode"] = versionCode
@@ -103,7 +104,7 @@ class CrashHandler private constructor() : Thread.UncaughtExceptionHandler {
             sb.append(ex.stackTrace[i].toString())
             sb.append("\n")
         }
-        val file = File(filePath.toString() + "/log.txt")
+        val file = File("$filePath/log.txt")
         var fos: FileOutputStream? = null
         try {
             fos = FileOutputStream(file)

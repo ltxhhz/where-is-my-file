@@ -20,4 +20,11 @@
     <string name="msg_moving">移动中</string>
     <string name="tip_copied">已复制</string>
     <string name="label_share_to">分享到</string>
+    <string name="menu_item5">打开</string>
+    <string name="app_name_debug">我tm文件呢_debug</string>
+    <string name="tip_no_app_to_open">没有应用可以打开此文件</string>
+    <string name="label_path">路径</string>
+    <string name="label_uri" translatable="false">URI</string>
+    <string name="label_possible">可能的</string>
+    <string name="label_folder">文件夹</string>
 </resources>
