@@ -26,7 +26,7 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter>
+            <intent-filter android:label="@string/action_locate_file">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -34,14 +34,12 @@
                 <data android:scheme="content" />
                 <data android:mimeType="*/*" />
             </intent-filter>
-            <!-- Add this filter, if you want to support sharing any type of files-->
-            <intent-filter>
+            <intent-filter android:label="@string/action_locate_file">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="*/*" />
             </intent-filter>
-            <!-- Add this filter, if you want to support sharing multiple files of any type-->
-            <intent-filter>
+            <intent-filter android:label="@string/action_locate_file">
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="*/*" />
