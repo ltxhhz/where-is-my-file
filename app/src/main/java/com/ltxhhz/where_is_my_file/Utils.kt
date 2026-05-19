@@ -4,8 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.net.Uri
 import android.webkit.MimeTypeMap
-import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import java.io.File
 
 fun getSupportedAppsForMimeType(mimeType: String, packageManager: PackageManager): List<ResolveInfo> {
@@ -29,8 +30,10 @@ fun getMimeType(file: File): String {
 
 fun getAppsForFile(context: Context, file: File): List<ResolveInfo> {
     val mimeType = getMimeType(file)
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    return getAppsForUri(context, file.toUri(), mimeType)
+}
 
+fun getAppsForUri(context: Context, uri: Uri, mimeType: String): List<ResolveInfo> {
     val intent = Intent(Intent.ACTION_VIEW).apply {
         setDataAndType(uri, mimeType)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

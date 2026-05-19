@@ -53,9 +53,7 @@ class MainActivity : AppCompatActivity() {
                 openFile(it)
             },{
                 showMenuDialog(it)
-            }) {
-                model.clearList()
-            }
+            })
         }
         if (BuildConfig.DEBUG){
             model.addItem(
@@ -161,7 +159,7 @@ class MainActivity : AppCompatActivity() {
                     4 -> selectFolderAndCopyFile(item.uri)
                     5 -> openFile(item)
                     6 -> {
-                        val apps = getAppsForFile(this, item.uri.toFile())
+                        val apps = getAppsForUri(this, item.uri, getMimeType(item.uri))
                         if (apps.isEmpty()) {
                             toast("没有可用的应用")
                         } else {

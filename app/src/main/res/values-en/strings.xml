@@ -3,6 +3,7 @@
     <string name="app_name">Where\'s My File</string>
     <string name="floating_btn_tooltip">Clear the list</string>
     <string name="tip_clear_list">Clear</string>
+    <string name="action_undo">Undo</string>
     <string name="menu_item0">Copy file name</string>
     <string name="menu_item1">Copy path</string>
     <string name="menu_item2">Copy uri</string>

@@ -3,6 +3,7 @@
     <string name="action_github" translatable="false">GitHub</string>
     <string name="floating_btn_tooltip">清空列表</string>
     <string name="tip_clear_list">已清空</string>
+    <string name="action_undo">撤销</string>
     <string name="menu_item0">复制文件名</string>
     <string name="menu_item1">复制路径</string>
     <string name="menu_item2">复制 uri</string>

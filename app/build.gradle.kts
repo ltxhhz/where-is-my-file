@@ -2,6 +2,9 @@ import java.util.Properties
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.impl.dirName
 
+val signingPropertiesFile = project.rootProject.file("signing.properties")
+val hasReleaseSigning = signingPropertiesFile.exists()
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.compose.compiler)
@@ -9,13 +12,15 @@ plugins {
 
 configure<ApplicationExtension> {
     signingConfigs {
-        create("release") {
+        if (hasReleaseSigning) {
+            create("release") {
             val signingProperties = Properties()
-            signingProperties.load(project.rootProject.file("signing.properties").reader())
+            signingProperties.load(signingPropertiesFile.reader())
             storeFile = file(signingProperties.getProperty("storeFile"))
             storePassword = signingProperties.getProperty("storePassword")
             keyAlias = signingProperties.getProperty("keyAlias")
             keyPassword = signingProperties.getProperty("keyPassword")
+            }
         }
     }
     namespace = "com.ltxhhz.where_is_my_file"
@@ -46,7 +51,9 @@ configure<ApplicationExtension> {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {

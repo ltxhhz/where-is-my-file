@@ -12,6 +12,10 @@ class AppStateViewModel : ViewModel() {
         _list.value = emptyList()
     }
 
+    fun restoreList(list: List<ReceiveFile>) {
+        _list.value = list
+    }
+
     fun addItem(item: ReceiveFile) {
         _list.value += item
     }

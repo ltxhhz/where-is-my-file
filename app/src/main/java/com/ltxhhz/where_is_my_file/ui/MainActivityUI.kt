@@ -6,9 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -18,18 +16,25 @@ import androidx.core.net.toUri
 import com.ltxhhz.where_is_my_file.AppStateViewModel
 import com.ltxhhz.where_is_my_file.R
 import com.ltxhhz.where_is_my_file.ReceiveFile
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     viewModel: AppStateViewModel,
     onItemClick: (ReceiveFile) -> Unit,
-    onItemLongClick: (ReceiveFile) -> Unit,
-    onFabClick: () -> Unit
+    onItemLongClick: (ReceiveFile) -> Unit
 ) {
     val context = LocalContext.current
     val list by viewModel.list.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val clearMessage = stringResource(R.string.tip_clear_list)
+    val undoLabel = stringResource(R.string.action_undo)
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(snackbarHostState)
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -51,7 +56,23 @@ fun MainScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onFabClick) {
+            FloatingActionButton(onClick = {
+                val clearedList = list
+                if (clearedList.isEmpty()) {
+                    return@FloatingActionButton
+                }
+                viewModel.clearList()
+                scope.launch {
+                    val result = snackbarHostState.showSnackbar(
+                        message = clearMessage,
+                        actionLabel = undoLabel,
+                        withDismissAction = true
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.restoreList(clearedList)
+                    }
+                }
+            }) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "清空"
