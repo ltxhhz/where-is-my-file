@@ -1,6 +1,8 @@
 package com.ltxhhz.where_is_my_file.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,15 +27,17 @@ fun ContentMain(
                 style = MaterialTheme.typography.bodyLarge
             )
         } else {
-            Column(
+            LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-//                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                list.forEach {
+                itemsIndexed(
+                    items = list,
+                    key = { index, item -> "${index}-${item.uri}" }
+                ) { _, item ->
                     ItemLayout(
-                        item = it,
-                        onClick = { onItemClick(it) },
-                    ) { onItemLongClick(it) }
+                        item = item,
+                        onClick = { onItemClick(item) },
+                    ) { onItemLongClick(item) }
                 }
             }
         }

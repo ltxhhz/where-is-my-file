@@ -349,6 +349,7 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(Intent.ACTION_SEND)
         intent.type = getMimeType(item.uri)
         intent.putExtra(Intent.EXTRA_STREAM, item.uri)
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         startActivity(Intent.createChooser(intent, getString(R.string.label_share_to)))
     }
 
