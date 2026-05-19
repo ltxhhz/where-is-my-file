@@ -93,6 +93,7 @@ androidComponents {
 dependencies {
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.documentfile)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
@@ -102,7 +103,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation(libs.xxpermissions)
 
     // 添加 Compose 依赖
     implementation(libs.androidx.activity.compose)

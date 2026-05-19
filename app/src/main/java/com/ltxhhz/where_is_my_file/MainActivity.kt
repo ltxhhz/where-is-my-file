@@ -3,36 +3,30 @@ package com.ltxhhz.where_is_my_file
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
+import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.documentfile.provider.DocumentFile
 import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
-import com.hjq.permissions.OnPermissionCallback
-import com.hjq.permissions.Permission
-import com.hjq.permissions.XXPermissions
 import com.ltxhhz.where_is_my_file.ui.MainScreen
-import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
 
 
 class MainActivity : AppCompatActivity() {
     private val model by viewModels<AppStateViewModel>()
     private lateinit var safPicker: SafPicker
 
-    private lateinit var sourceUri: Uri
+    private var sourceUri: Uri? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -44,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         safPicker.onDirPicked = { uri ->
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             contentResolver.takePersistableUriPermission(uri, flags)
-            fileSelected(getRealPathFromUri(uri))
+            copyToTree(uri, sourceUri)
         }
 //        safPicker.onFilePicked = { uri ->
 //        }
@@ -184,41 +178,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun selectFolderAndCopyFile(sourceUri: Uri) {
         this@MainActivity.sourceUri = sourceUri
-//        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-        XXPermissions.with(this) //.constantRequest() //可设置被拒绝后继续申请，直到用户授权或者永久拒绝
-            //.permission(Permission.SYSTEM_ALERT_WINDOW, Permission.REQUEST_INSTALL_PACKAGES) //支持请求6.0悬浮窗权限8.0请求安装权限
-            .permission(Permission.MANAGE_EXTERNAL_STORAGE) //不指定权限则自动获取清单中的危险权限
-//            .interceptor(PermissionInterceptor())
-            .request(object : OnPermissionCallback {
-                override fun onGranted(permissions: List<String>, allGranted: Boolean) {
-                    if (!allGranted) {
-                        toast(R.string.permission_some)
-                        return
-                    }
-//                    toast("获取存储权限成功")
-                    safPicker.pickDirectory()
-                }
-
-                override fun onDenied(permissions: List<String>, doNotAskAgain: Boolean) {
-                    if (doNotAskAgain) {
-                        toast(R.string.permission_reject_permanent)
-                        // 如果是被永久拒绝就跳转到应用权限系统设置页面
-                        XXPermissions.startPermissionActivity(this@MainActivity, permissions)
-                    } else {
-                        toast(R.string.permission_reject)
-                    }
-                }
-            })
-    }
-
-    private fun fileSelected(path: String) {
-        val file = File(path)
-        if (file.exists()) {
-//            copyUriToFile(file.toUri(), selectedUri)
-            copyToFile(path, sourceUri)
-        } else {
-            toastL("${getString(R.string.tip_path_not_exist)} $path")
-        }
+        safPicker.pickDirectory()
     }
 
     private fun toast(s: String) {
@@ -237,74 +197,86 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, s, Toast.LENGTH_LONG).show()
     }
 
-    private fun copyToFile(destDir: String, sourceUri: Uri) {
-        val inputStream: InputStream? = contentResolver.openInputStream(sourceUri)
-        inputStream?.use { input ->
-            // 获取目标文件夹的路径
-            val destinationFolder = File(destDir)
-
-            // 创建目标文件
-            val fileName = getFileName(sourceUri)
-            val destinationFile = File(destinationFolder, fileName)
-            if (destinationFile.exists()) {
-                toast(R.string.tip_same_name_exist)
-            } else {
-                // 复制文件内容
-//                toast("移动中")
-                ProgressHelper.showDialog(this, getString(R.string.msg_moving))
-                FileOutputStream(destinationFile).use { output ->
-                    input.copyTo(output)
-                    ProgressHelper.dismissDialog()
-                    toast(R.string.tip_completed)
-                }
-            }
+    private fun copyToTree(destTreeUri: Uri, sourceUri: Uri?) {
+        if (sourceUri == null) {
+            return
         }
-    }
 
-    private fun copyToFile(dest: Uri, sourceUri: Uri) {
-        return copyToFile(getRealPathFromUri(dest), sourceUri)
+        val destinationFolder = DocumentFile.fromTreeUri(this, destTreeUri)
+        if (destinationFolder == null || !destinationFolder.canWrite()) {
+            toastL(R.string.tip_path_not_exist)
+            return
+        }
+
+        val fileName = getFileName(sourceUri)
+        if (destinationFolder.findFile(fileName) != null) {
+            toast(R.string.tip_same_name_exist)
+            return
+        }
+
+        val destinationFile = destinationFolder.createFile(getMimeType(sourceUri), fileName)
+        if (destinationFile == null) {
+            toastL(R.string.tip_path_not_exist)
+            return
+        }
+
+        ProgressHelper.showDialog(this, getString(R.string.msg_moving))
+        try {
+            val copied = contentResolver.openInputStream(sourceUri)?.use { input ->
+                contentResolver.openOutputStream(destinationFile.uri)?.use { output ->
+                    input.copyTo(output)
+                    true
+                } ?: false
+            } ?: false
+            if (copied) {
+                toast(R.string.tip_completed)
+            } else {
+                toastL(R.string.tip_path_not_exist)
+            }
+        } catch (e: Exception) {
+            toastL(e.message ?: getString(R.string.tip_path_not_exist))
+            e.printStackTrace()
+        } finally {
+            ProgressHelper.dismissDialog()
+        }
     }
 
     private fun getFileName(uri: Uri): String {
-        var result: String? = null
         if (uri.scheme == "content") {
-            result = RealPathFromUriUtils.getRealPathFromUri(this, uri)
-        }
-        if (result == null) {
-            result = uri.path ?: "unknown_file"
-            val cut = result.lastIndexOf('/')
-            if (cut != -1) {
-                result = result.substring(cut + 1)
+            queryDisplayName(uri)?.let {
+                return it
             }
         }
-        return result
+
+        val result = uri.path ?: "unknown_file"
+        val cut = result.lastIndexOf('/')
+        return if (cut != -1) {
+            result.substring(cut + 1)
+        } else {
+            result
+        }
     }
 
-    private fun getRealPathFromUri(uri: Uri): String {
-        val realPath = uri.toString()
-        val documentId = DocumentsContract.getTreeDocumentId(uri)
-        val split = documentId.split(":")
-        val storageType = split[0]
-        val path = split[1]
-
-        return when (storageType) {
-            "primary" -> {
-                // 如果是 primary 存储，直接返回路径
-                "${Environment.getExternalStorageDirectory()}/$path"
+    private fun queryDisplayName(uri: Uri): String? {
+        var cursor: Cursor? = null
+        return try {
+            cursor = contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null
+            )
+            if (cursor != null && cursor.moveToFirst()) {
+                val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (index >= 0) cursor.getString(index) else null
+            } else {
+                null
             }
-
-            else -> {
-                if (DocumentsContract.isDocumentUri(this, uri)) {
-                    val d = DocumentsContract.getDocumentId(uri)
-                    if (d.startsWith("raw:")) {
-                        d.replaceFirst("raw:", "")
-                    } else {
-                        realPath
-                    }
-                } else {
-                    RealPathFromUriUtils.getRealPathFromUri(this, uri) ?: realPath
-                }
-            }
+        } catch (e: Exception) {
+            null
+        } finally {
+            cursor?.close()
         }
     }
 
