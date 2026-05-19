@@ -19,7 +19,11 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
 import com.ltxhhz.where_is_my_file.ui.MainScreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class MainActivity : AppCompatActivity() {
@@ -198,47 +202,100 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, s, Toast.LENGTH_LONG).show()
     }
 
+    private sealed class CopyResult {
+        object Success : CopyResult()
+        object InvalidTarget : CopyResult()
+        object SameName : CopyResult()
+        object Copying : CopyResult()
+        data class Failure(val message: String?) : CopyResult()
+    }
+
     private fun copyToTree(destTreeUri: Uri, sourceUri: Uri?) {
         if (sourceUri == null) {
             return
         }
 
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                prepareCopy(destTreeUri, sourceUri)
+            }
+            when (result) {
+                CopyResult.Copying -> copyFileInBackground(destTreeUri, sourceUri)
+                CopyResult.InvalidTarget -> toastL(R.string.tip_path_not_exist)
+                CopyResult.SameName -> toast(R.string.tip_same_name_exist)
+                CopyResult.Success -> toast(R.string.tip_completed)
+                is CopyResult.Failure -> {
+                    toastL(result.message ?: getString(R.string.tip_path_not_exist))
+                    result.message?.let { Log.e("copyToTree", it) }
+                }
+            }
+        }
+    }
+
+    private fun prepareCopy(destTreeUri: Uri, sourceUri: Uri): CopyResult {
         val destinationFolder = DocumentFile.fromTreeUri(this, destTreeUri)
         if (destinationFolder == null || !destinationFolder.canWrite()) {
-            toastL(R.string.tip_path_not_exist)
-            return
+            return CopyResult.InvalidTarget
         }
 
         val fileName = getFileName(sourceUri)
         if (destinationFolder.findFile(fileName) != null) {
-            toast(R.string.tip_same_name_exist)
-            return
+            return CopyResult.SameName
+        }
+
+        return CopyResult.Copying
+    }
+
+    private suspend fun copyFileInBackground(destTreeUri: Uri, sourceUri: Uri) {
+        ProgressHelper.showDialog(this, getString(R.string.msg_moving))
+        val result = withContext(Dispatchers.IO) {
+            copyToTreeInBackground(destTreeUri, sourceUri)
+        }
+        ProgressHelper.dismissDialog()
+        when (result) {
+            CopyResult.Success -> toast(R.string.tip_completed)
+            CopyResult.InvalidTarget -> toastL(R.string.tip_path_not_exist)
+            CopyResult.SameName -> toast(R.string.tip_same_name_exist)
+            CopyResult.Copying -> Unit
+            is CopyResult.Failure -> {
+                toastL(result.message ?: getString(R.string.tip_path_not_exist))
+                result.message?.let { Log.e("copyToTree", it) }
+            }
+        }
+    }
+
+    private fun copyToTreeInBackground(destTreeUri: Uri, sourceUri: Uri): CopyResult {
+        val destinationFolder = DocumentFile.fromTreeUri(this, destTreeUri)
+        if (destinationFolder == null || !destinationFolder.canWrite()) {
+            return CopyResult.InvalidTarget
+        }
+
+        val fileName = getFileName(sourceUri)
+        if (destinationFolder.findFile(fileName) != null) {
+            return CopyResult.SameName
         }
 
         val destinationFile = destinationFolder.createFile(getMimeType(sourceUri), fileName)
-        if (destinationFile == null) {
-            toastL(R.string.tip_path_not_exist)
-            return
-        }
+            ?: return CopyResult.InvalidTarget
 
-        ProgressHelper.showDialog(this, getString(R.string.msg_moving))
-        try {
+        return try {
             val copied = contentResolver.openInputStream(sourceUri)?.use { input ->
                 contentResolver.openOutputStream(destinationFile.uri)?.use { output ->
                     input.copyTo(output)
                     true
                 } ?: false
             } ?: false
+
             if (copied) {
-                toast(R.string.tip_completed)
+                CopyResult.Success
             } else {
-                toastL(R.string.tip_path_not_exist)
+                destinationFile.delete()
+                CopyResult.InvalidTarget
             }
         } catch (e: Exception) {
-            toastL(e.message ?: getString(R.string.tip_path_not_exist))
+            destinationFile.delete()
             e.printStackTrace()
-        } finally {
-            ProgressHelper.dismissDialog()
+            CopyResult.Failure(e.message)
         }
     }
 
