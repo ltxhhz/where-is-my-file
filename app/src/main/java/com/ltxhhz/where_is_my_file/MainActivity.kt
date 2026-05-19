@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.DocumentsContract
@@ -97,7 +98,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleSingleIntent(intent: Intent) {
-        val uri = intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java) ?: intent.data ?: return
+        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(Intent.EXTRA_STREAM)
+        } ?: intent.data ?: return
+        
         val fromPkg = referrer?.authority ?: ""
 
         val receiveFile = ReceiveFile(
@@ -107,7 +114,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleMultipleIntent(intent: Intent) {
-        val streamUris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        val streamUris = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
+        }
+        
         if (streamUris != null) {
             for (uri in streamUris) {
                 val fromPkg = referrer?.authority ?: ""

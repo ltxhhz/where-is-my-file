@@ -1,13 +1,13 @@
-import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
 import java.util.Properties
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.variant.impl.dirName
 
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.compose.compiler)
 }
 
-android {
+configure<ApplicationExtension> {
     signingConfigs {
         create("release") {
             val signingProperties = Properties()
@@ -41,6 +41,7 @@ android {
 
         getByName("release") {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -52,9 +53,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlin {
-        jvmToolchain(11)
-    }
+//    kotlin {
+//        jvmToolchain(17)
+//    }
 //    kotlinOptions {
 //        jvmTarget = "1.8"
 //    }
@@ -62,20 +63,31 @@ android {
         viewBinding = true
         compose = true
         buildConfig = true
+        resValues = true
     }
 
-    applicationVariants.all {
-        outputs.all {
-            val ver = defaultConfig.versionName
-            val minSdk =
-                project.extensions.getByType(BaseAppModuleExtension::class.java).defaultConfig.minSdk
-            val abi = filters.find { it.filterType == "ABI" }?.identifier ?: "all"
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                "${project.name}-$ver-${abi}-sdk$minSdk.apk"
-            println("Output File Dir: " + outputFile.parent)
+}
+
+androidComponents {
+    onVariants { variant ->
+        val minSdk = variant.minSdk.apiLevel
+        variant.outputs.forEach { output ->
+            val ver = output.versionName.get()
+            // 获取ABI信息
+            val abiFilter = output.filters.find {
+                it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI
+            }
+            val abi = abiFilter?.identifier ?: "all"
+
+            output.outputFileName.set(
+                "${variant.name}-$ver-${abi}-sdk$minSdk.apk"
+            )
+            val outputDir =
+                layout.buildDirectory.dir("outputs/apk/${variant.name}")
+            println("Output File Dir: " + outputDir.get().asFile.absolutePath)
+            println("Output File Name: " + output.outputFileName.get())
         }
     }
-
 }
 
 dependencies {
