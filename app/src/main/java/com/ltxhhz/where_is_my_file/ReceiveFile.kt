@@ -7,7 +7,8 @@ class ReceiveFile(
     val uri: Uri,
     val fromPkg: String,
     val action: String,
-    realPath: String?
+    realPath: String?,
+    displayName: String? = null
 ) {
     val path: String
     val filename: String
@@ -21,8 +22,8 @@ class ReceiveFile(
         get() = action == Intent.ACTION_SEND || action == Intent.ACTION_SEND_MULTIPLE
 
     init {
-        filename = extractFileName(uri.toString())
-        possible = realPath == null
+        filename = displayName ?: extractFileName(uri.toString())
+        possible = realPath == null || uri.scheme != "file"
         path = realPath ?: Uri.decode(uri.toString().replaceFirst(Regex("content://[^/]+"), ""))
         isDir = path.endsWith("/")
     }

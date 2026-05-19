@@ -101,10 +101,7 @@ class MainActivity : AppCompatActivity() {
         
         val fromPkg = referrer?.authority ?: ""
 
-        val receiveFile = ReceiveFile(
-            uri, fromPkg, intent.action!!, RealPathFromUriUtils.getRealPathFromUri(this, uri)
-        )
-        model.addItem(receiveFile)
+        model.addItem(createReceiveFile(uri, fromPkg, intent.action!!))
     }
 
     private fun handleMultipleIntent(intent: Intent) {
@@ -119,15 +116,19 @@ class MainActivity : AppCompatActivity() {
             for (uri in streamUris) {
                 val fromPkg = referrer?.authority ?: ""
 
-                val receiveFile = ReceiveFile(
-                    uri,
-                    fromPkg,
-                    intent.action!!,
-                    RealPathFromUriUtils.getRealPathFromUri(this, uri)
-                )
-                model.addItem(receiveFile)
+                model.addItem(createReceiveFile(uri, fromPkg, intent.action!!))
             }
         }
+    }
+
+    private fun createReceiveFile(uri: Uri, fromPkg: String, action: String): ReceiveFile {
+        return ReceiveFile(
+            uri = uri,
+            fromPkg = fromPkg,
+            action = action,
+            realPath = RealPathFromUriUtils.getRealPathFromUri(this, uri),
+            displayName = queryDisplayName(uri)
+        )
     }
 
     private fun showMenuDialog(item: ReceiveFile) {
